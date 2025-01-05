@@ -1,24 +1,24 @@
 const features = [
     {
         id: 1,
-        title: "Smart Notifications",
-        description: "Get instant updates about what matters most to you with our intelligent notification system.",
-        videoUrlMobile: "https://www.w3schools.com/tags/mov_bbb.mp4",
-        videoUrlDesktop: "https://www.w3schools.com/tags/mov_bbb.mp4"
+        title: "Questions Officiels",
+        description: "Accédez rapidement à un vaste répertoire de questions, organisées par année, module et chapitre. Cette structure facilite la navigation et la révision",
+        videoUrlMobile: "./videos/feature1-desktop.mp4",
+        videoUrlDesktop: "./videos/feature1-desktop.mp4"
     },
     {
         id: 2,
-        title: "Quick Actions",
-        description: "Complete tasks in seconds with our intuitive quick action interface.",
-        videoUrlMobile: "https://www.w3schools.com/tags/mov_bbb.mp4",
-        videoUrlDesktop: "https://www.w3schools.com/tags/mov_bbb.mp4"
+        title: "Bibliothèque Actualisée",
+        description: "Notre bibliothèque offre un accès à des cours officiels et actualisés fournis par les professeurs. Les étudiants peuvent suivre leur progression, ce qui les aide à rester organisés ",
+        videoUrlMobile: "./videos/feature1-desktop.mp4",
+        videoUrlDesktop: "./videos/feature1-desktop.mp4"
     },
     {
         id: 3,
-        title: "Seamless Sync",
-        description: "Your data is always up to date across all your devices with real-time synchronization.",
-        videoUrlMobile: "https://www.w3schools.com/tags/mov_bbb.mp4",
-        videoUrlDesktop: "https://www.w3schools.com/tags/mov_bbb.mp4"
+        title: "Explications Détailées",
+        description: "La majorité des questions sont accompagnées d'explications détaillées, renforcées par des schémas, des tableaux et des images, qui éclaircissent les concepts clés et offrent des exemples pertinents.",
+        videoUrlMobile: "./videos/feature1-desktop.mp4",
+        videoUrlDesktop: "./videos/feature1-desktop.mp4"
     }
 ];
 
@@ -43,23 +43,19 @@ class FeatureShowcase {
     initializeFirstVideo() {
         const videos = this.getActiveVideos();
         if (videos[0]) {
-            // Force video to be visible
             videos[0].style.opacity = '1';
             videos[0].style.visibility = 'visible';
 
-            // Try to play the video
             const playAttempt = setInterval(() => {
                 videos[0].play()
                     .then(() => {
                         clearInterval(playAttempt);
-                        this.startProgress();
                     })
                     .catch(error => {
                         console.log("Video play attempt failed:", error);
                     });
             }, 1000);
 
-            // Clear interval after 5 attempts
             setTimeout(() => clearInterval(playAttempt), 5000);
         }
     }
@@ -93,7 +89,7 @@ class FeatureShowcase {
             mobileVideo.controls = false;
             mobileVideo.preload = 'auto';
             mobileVideo.style.visibility = index === 0 ? 'visible' : 'hidden';
-            mobileVideo.addEventListener('ended', () => this.handleVideoComplete());
+            mobileVideo.addEventListener('timeupdate', () => this.handleTimeUpdate());
             mobileContainer.appendChild(mobileVideo);
 
             // Desktop video
@@ -107,11 +103,34 @@ class FeatureShowcase {
             desktopVideo.controls = false;
             desktopVideo.preload = 'auto';
             desktopVideo.style.visibility = index === 0 ? 'visible' : 'hidden';
-            desktopVideo.addEventListener('ended', () => this.handleVideoComplete());
+            desktopVideo.addEventListener('timeupdate', () => this.handleTimeUpdate());
             desktopContainer.appendChild(desktopVideo);
         });
 
         this.updateVideoContainers();
+    }
+
+    handleTimeUpdate() {
+        const videos = this.getActiveVideos();
+        const currentVideo = videos[this.activeIndex];
+
+        if (currentVideo) {
+            const progress = currentVideo.currentTime / currentVideo.duration;
+            this.updateProgress(progress);
+
+            if (currentVideo.currentTime >= currentVideo.duration - 0.1) {
+                this.setActiveIndex((this.activeIndex + 1) % features.length);
+            }
+        }
+    }
+
+    updateProgress(progress) {
+        const activeButton = document.querySelector('.nav-button.active');
+        const progressBar = activeButton?.querySelector('.progress');
+
+        if (progressBar) {
+            progressBar.style.width = `${progress * 100}%`;
+        }
     }
 
     updateVideoContainers() {
@@ -170,18 +189,20 @@ class FeatureShowcase {
 
         if (!videos.length) return;
 
+        // Reset progress on previous button
+        if (progressBars[this.activeIndex]) {
+            progressBars[this.activeIndex].style.width = '0%';
+        }
+        buttons[this.activeIndex].classList.remove('active');
+
         // Pause and hide current video
         if (videos[this.activeIndex]) {
             videos[this.activeIndex].style.opacity = '0';
             videos[this.activeIndex].style.visibility = 'hidden';
             videos[this.activeIndex].pause();
         }
-        buttons[this.activeIndex].classList.remove('active');
-        progressBars[this.activeIndex].classList.add('hidden');
-        progressBars[this.activeIndex].classList.remove('visible');
 
         this.activeIndex = index;
-        this.progress = 0;
 
         // Play and show new video
         if (videos[index]) {
@@ -192,7 +213,6 @@ class FeatureShowcase {
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
                     console.log("Video play error:", error);
-                    // Try playing again after a short delay
                     setTimeout(() => {
                         videos[index].play().catch(e => console.log("Retry failed:", e));
                     }, 100);
@@ -200,31 +220,21 @@ class FeatureShowcase {
             }
         }
         buttons[index].classList.add('active');
-        progressBars[index].classList.remove('hidden');
-        progressBars[index].classList.add('visible');
 
         this.updateContent();
     }
+}
 
-    startProgress() {
-        this.interval = setInterval(() => {
-            this.progress += 0.01;
-            const progressBar = document.querySelector('.progress.visible');
-            if (progressBar) {
-                progressBar.style.width = `${this.progress * 100}%`;
-            }
+function updateActiveButton(index) {
+    const buttons = document.querySelectorAll('.nav-button');
+    const progress = document.querySelector('.progress');
 
-            if (this.progress >= 1) {
-                this.setActiveIndex((this.activeIndex + 1) % features.length);
-                this.progress = 0;
-            }
-        }, 50);
-    }
+    buttons.forEach((button, i) => {
+        button.classList.toggle('active', i === index);
+    });
 
-    handleVideoComplete() {
-        this.setActiveIndex((this.activeIndex + 1) % features.length);
-        this.progress = 0;
-    }
+    // Update progress bar position
+    progress.setAttribute('data-state', index + 1);
 }
 
 // Initialize the showcase when the DOM is loaded
